@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Diary</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f4f8f9;
+            --text-color: #333;
+            --card-background: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .entry {
+            background-color: #f9f9fb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .entry:hover {
+            transform: scale(1.02);
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .username {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 0.9em;
+            background-color: #e6f2ff;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .entry-date {
+            color: #777;
+            font-size: 0.8em;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            color: #c0392b;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        #login-page, #write-page {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .entry {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="main-page" class="card">
+            <h1 style="color: var(--primary-color); margin-bottom: 20px;">My Personal Diary</h1>
+            <button class="btn" onclick="showLoginPage('write')">yap</button>
+            <div id="entries-container"></div>
+        </div>
+
+        <div id="login-page" class="card">
+            <h2>Sign in firstly </h2>
+            <div class="input-group">
+                <input type="text" id="username" placeholder="Username">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Password">
+            </div>
+            <button class="btn" onclick="authenticate()">Submit</button>
+            <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+        </div>
+
+        <div id="write-page" class="card">
+            <h2>Write New Entry</h2>
+            <textarea id="entry-text" rows="10" placeholder="Write your thoughts here..."></textarea>
+            <button class="btn" onclick="saveEntry()">Publish</button>
+            <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Predefined user credentials
+        const USERS = [
+            { username: 'user1', password: '1234' },
+            { username: 'user2', password: '5678' }
+        ];
+
+        // Current logged-in user
+        let currentUser = null;
+        let currentOperation = '';
+
+        // Get references to pages
+        const mainPage = document.getElementById('main-page');
+        const loginPage = document.getElementById('login-page');
+        const writePage = document.getElementById('write-page');
+        const entriesContainer = document.getElementById('entries-container');
+
+        // Show login page
+        function showLoginPage(operation) {
+            currentOperation = operation;
+            mainPage.style.display = 'none';
+            loginPage.style.display = 'block';
+        }
+
+        // Authenticate user
+        function authenticate() {
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            // Check credentials
+            const user = USERS.find(u => 
+                u.username === usernameInput.value && 
+                u.password === passwordInput.value
+            );
+
+            if (user) {
+                currentUser = user.username;
+                loginPage.style.display = 'none';
+                
+                if (currentOperation === 'write') {
+                    writePage.style.display = 'block';
+                } else if (currentOperation === 'delete') {
+                    startDeleteMode();
+                }
+            } else {
+                alert('Invalid username or password');
+                usernameInput.value = '';
+                passwordInput.value = '';
+            }
+        }
+
+        // Save entry
+        function saveEntry() {
+            const entryText = document.getElementById('entry-text');
+            
+            if (entryText.value.trim() === '') {
+                alert('Please write something');
+                return;
+            }
+
+            // Get existing entries
+            let entries = JSON.parse(localStorage.getItem('diaryEntries') || '[]');
+            
+            // Create new entry object
+            const newEntry = {
+                id: Date.now(),
+                username: currentUser,
+                text: entryText.value,
+                date: new Date().toLocaleString()
+            };
+
+            // Add new entry
+            entries.unshift(newEntry);
+
+            // Save to local storage
+            localStorage.setItem('diaryEntries', JSON.stringify(entries));
+
+            // Reset and go back to main page
+            entryText.value = '';
+            goBack();
+            loadEntries();
+        }
+
+        // Delete entry
+        function deleteEntry(id) {
+            currentDeleteId = id;
+            showLoginPage('delete');
+        }
+
+        // Start delete mode after successful authentication
+        function startDeleteMode() {
+            const entries = JSON.parse(localStorage.getItem('diaryEntries') || '[]');
+            
+            // Remove the entry with the matching id
+            const confirmDelete = confirm('Are you sure you want to delete this entry?');
+            if (confirmDelete) {
+                const updatedEntries = entries.filter(entry => entry.id !== currentDeleteId);
+                localStorage.setItem('diaryEntries', JSON.stringify(updatedEntries));
+                loadEntries();
+                goBack();
+            }
+        }
+
+        // Global variable to store the ID of entry to be deleted
+        let currentDeleteId = null;
+
+        // Go back to main page
+        function goBack() {
+            mainPage.style.display = 'block';
+            loginPage.style.display = 'none';
+            writePage.style.display = 'none';
+        }
+
+        // Load entries
+        function loadEntries() {
+            // Get entries from local storage
+            const entries = JSON.parse(localStorage.getItem('diaryEntries') || '[]');
+            
+            // Clear existing entries
+            entriesContainer.innerHTML = '';
+
+            // Display entries
+            entries.forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'entry';
+                entryDiv.innerHTML = `
+                    <div class="entry-content" style="width: 100%;">
+                        <div class="entry-header">
+                            <span class="username">@${entry.username}</span>
+                            <span class="entry-date">${entry.date}</span>
+                        </div>
+                        <p>${entry.text}</p>
+                    </div>
+                    <button class="delete-btn" onclick="deleteEntry(${entry.id})">🗑️</button>
+                `;
+                entriesContainer.appendChild(entryDiv);
+            });
+        }
+
+        // Load entries when page loads
+        loadEntries();
+    </script>
+</body>
+</html>
